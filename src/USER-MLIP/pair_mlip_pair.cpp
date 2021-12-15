@@ -94,19 +94,19 @@ void PairMLIPPair::compute(int eflag, int vflag)
             vector1d fn;
             const int n_fn = pot.modelp.get_n_fn();
 
-            i = list->ilist[ii]; 
+            i = list->ilist[ii];
             type1 = types[tag[i]-1];
-            jnum = list->numneigh[i]; 
+            jnum = list->numneigh[i];
             jlist = list->firstneigh[i];
             for (int jj = 0; jj < jnum; jj++) {
-                j = jlist[jj]; 
+                j = jlist[jj];
                 delx = x[i][0]-x[j][0];
                 dely = x[i][1]-x[j][1];
                 delz = x[i][2]-x[j][2];
                 dis = sqrt(delx*delx + dely*dely + delz*delz);
 
                 if (dis < pot.fp.cutoff){
-                    type2 = types[tag[j]-1]; 
+                    type2 = types[tag[j]-1];
                     sindex = type_comb[type1][type2] * n_fn;
                     get_fn(dis, pot.fp, fn);
                     for (int n = 0; n < n_fn; ++n) {
@@ -122,7 +122,7 @@ void PairMLIPPair::compute(int eflag, int vflag)
                 }
             }
         }
-        
+
         #ifdef _OPENMP
         #pragma omp parallel for schedule(guided)
         #endif
@@ -134,14 +134,14 @@ void PairMLIPPair::compute(int eflag, int vflag)
 
             i = ilist[ii], type1 = types[tag[i]-1];
             const int n_fn = pot.modelp.get_n_fn();
-            const vector1d &prodi 
+            const vector1d &prodi
                 = polynomial_model_uniq_products(dn[tag[i]-1]);
             for (int type2 = 0; type2 < pot.fp.n_type; ++type2){
                 const int tc = type_comb[type1][type2];
                 vector1d vals_f(n_fn, 0.0), vals_e(n_fn, 0.0);
                 for (int n = 0; n < n_fn; ++n){
                     double v;
-                    for (const auto& pi: 
+                    for (const auto& pi:
                         pot.poly_model.get_polynomial_info(tc,n)){
                         v = prodi[pi.comb_i] * pot.reg_coeffs[pi.reg_i];
                         vals_f[n] += v;
@@ -153,7 +153,7 @@ void PairMLIPPair::compute(int eflag, int vflag)
             }
         }
     }
-    // end: first part of polynomial model correction 
+    // end: first part of polynomial model correction
 
     vector2d evdwl_array(inum),fpair_array(inum);
     #ifdef _OPENMP
@@ -165,9 +165,9 @@ void PairMLIPPair::compute(int eflag, int vflag)
         double **x = atom->x;
         tagint *tag = atom->tag;
 
-        i = list->ilist[ii]; 
+        i = list->ilist[ii];
         type1 = types[tag[i]-1];
-        jnum = list->numneigh[i]; 
+        jnum = list->numneigh[i];
         jlist = list->firstneigh[i];
 
         const int n_fn = pot.modelp.get_n_fn();
@@ -176,14 +176,14 @@ void PairMLIPPair::compute(int eflag, int vflag)
         evdwl_array[ii].resize(jnum);
         fpair_array[ii].resize(jnum);
         for (int jj = 0; jj < jnum; jj++) {
-            j = jlist[jj]; 
+            j = jlist[jj];
             delx = x[i][0]-x[j][0];
             dely = x[i][1]-x[j][1];
             delz = x[i][2]-x[j][2];
             dis = sqrt(delx*delx + dely*dely + delz*delz);
 
             if (dis < pot.fp.cutoff){
-                type2 = types[tag[j]-1]; 
+                type2 = types[tag[j]-1];
                 tc = type_comb[type1][type2];
                 sindex = tc * n_fn;
 
@@ -201,8 +201,8 @@ void PairMLIPPair::compute(int eflag, int vflag)
                 // polynomial model correction: end
 
                 fpair *= - 1.0 / dis;
-                evdwl_array[ii][jj] = evdwl; 
-                fpair_array[ii][jj] = fpair; 
+                evdwl_array[ii][jj] = evdwl;
+                fpair_array[ii][jj] = fpair;
             }
         }
     }
@@ -212,7 +212,7 @@ void PairMLIPPair::compute(int eflag, int vflag)
     double **f = atom->f;
     double **x = atom->x;
     for (int ii = 0; ii < inum; ii++) {
-        i = list->ilist[ii]; 
+        i = list->ilist[ii];
         jnum = list->numneigh[i], jlist = list->firstneigh[i];
         for (int jj = 0; jj < jnum; jj++) {
             j = jlist[jj];
@@ -222,13 +222,13 @@ void PairMLIPPair::compute(int eflag, int vflag)
             dis = sqrt(delx*delx + dely*dely + delz*delz);
             if (dis < pot.fp.cutoff){
                 evdwl = evdwl_array[ii][jj];
-                fpair = fpair_array[ii][jj]; 
-                f[i][0] += fpair*delx; 
-                f[i][1] += fpair*dely; 
+                fpair = fpair_array[ii][jj];
+                f[i][0] += fpair*delx;
+                f[i][1] += fpair*dely;
                 f[i][2] += fpair*delz;
                 //            if (newton_pair || j < nlocal)
-                f[j][0] -= fpair*delx; 
-                f[j][1] -= fpair*dely; 
+                f[j][0] -= fpair*delx;
+                f[j][1] -= fpair*dely;
                 f[j][2] -= fpair*delz;
                 if (evflag) {
                     ev_tally(i,j,nlocal,newton_pair,
@@ -381,7 +381,7 @@ void PairMLIPPair::read_pot(char *file)
     int n_reg_coeffs = get_value<int>(input);
     pot.reg_coeffs = get_value_array<double>(input, n_reg_coeffs);
     vector1d scale = get_value_array<double>(input, n_reg_coeffs);
-    for (int i = 0; i < n_reg_coeffs; ++i) 
+    for (int i = 0; i < n_reg_coeffs; ++i)
         pot.reg_coeffs[i] *= 2.0/scale[i];
 
     // line 14: number of gaussian parameters
@@ -390,12 +390,12 @@ void PairMLIPPair::read_pot(char *file)
     pot.fp.params = vector2d(n_params);
     for (int i = 0; i < n_params; ++i)
         pot.fp.params[i] = get_value_array<double>(input, 2);
-    
+
     // last line: atomic mass
     mass = get_value_array<double>(input, ele.size());
 
     pot.modelp = ModelParams(pot.fp);
-    if (pot.fp.maxp > 1) 
+    if (pot.fp.maxp > 1)
         pot.poly_model = PolynomialPair(pot.fp, pot.modelp);
 
     type_comb = vector2i(pot.fp.n_type, vector1i(pot.fp.n_type));

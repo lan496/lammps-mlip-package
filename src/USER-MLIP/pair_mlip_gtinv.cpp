@@ -67,12 +67,17 @@ void PairMLIPGtinv::compute(int eflag, int vflag)
     if (eflag || vflag) ev_setup(eflag,vflag);
     else evflag = 0;
 
+    types.clear();
+    for (int i = 0; i < atom->natoms; ++i){
+        types.emplace_back(map[(atom->type)[i]-1]);
+    }
+
     int inum = list->inum;
     int nlocal = atom->nlocal;
     int newton_pair = force->newton_pair;
 
     const int n_type_comb = pot.modelp.get_type_comb_pair().size();
-    const int n_fn = pot.modelp.get_n_fn(); 
+    const int n_fn = pot.modelp.get_n_fn();
     const int n_lm = pot.lm_info.size();
     const int n_lm_all = 2 * n_lm - pot.fp.maxl - 1;
 
@@ -92,7 +97,7 @@ void PairMLIPGtinv::compute(int eflag, int vflag)
         i = list->ilist[ii], type1 = types[tag[i]-1];
 
         const int n_gtinv = pot.modelp.get_linear_term_gtinv().size();
-        const vector2dc &uniq 
+        const vector2dc &uniq
             = compute_anlm_uniq_products(type1, anlm[tag[i]-1]);
         vector1d uniq_p;
         if (pot.fp.maxp > 1){
@@ -121,7 +126,7 @@ void PairMLIPGtinv::compute(int eflag, int vflag)
                     }
                     // polynomial model correction
                     if (pot.fp.maxp > 1){
-                        for (const auto& pi: 
+                        for (const auto& pi:
                             pot.poly_gtinv.get_polynomial_info(tc0,n,lm0)){
                             regc = pot.reg_coeffs[pi.reg_i] * uniq_p[pi.comb_i];
                             if (pi.lmt_pi != -1){
@@ -188,7 +193,7 @@ void PairMLIPGtinv::compute(int eflag, int vflag)
         vector1dc ylm,ylm_dtheta;
         vector2dc fn_ylm,fn_ylm_dx,fn_ylm_dy,fn_ylm_dz;
 
-        fn_ylm = fn_ylm_dx = fn_ylm_dy = fn_ylm_dz 
+        fn_ylm = fn_ylm_dx = fn_ylm_dy = fn_ylm_dz
             = vector2dc(n_fn, vector1dc(n_lm_all));
 
         for (int jj = 0; jj < jnum; jj++) {
@@ -201,19 +206,19 @@ void PairMLIPGtinv::compute(int eflag, int vflag)
             if (dis < pot.fp.cutoff){
                 type2 = types[tag[j]-1];
 
-                const vector1d &sph 
+                const vector1d &sph
                     = cartesian_to_spherical(vector1d{delx,dely,delz});
                 get_fn(dis, pot.fp, fn, fn_d);
                 get_ylm(sph, pot.lm_info, ylm, ylm_dtheta);
 
                 costheta = cos(sph[0]), sintheta = sin(sph[0]);
                 cosphi = cos(sph[1]), sinphi = sin(sph[1]);
-                fabs(sintheta) > 1e-15 ? 
+                fabs(sintheta) > 1e-15 ?
                     (coeff = 1.0 / sintheta) : (coeff = 0);
                 for (int lm = 0; lm < n_lm; ++lm) {
-                    m = pot.lm_info[lm][1], lm1 = pot.lm_info[lm][2], 
+                    m = pot.lm_info[lm][1], lm1 = pot.lm_info[lm][2],
                       lm2 = pot.lm_info[lm][3];
-                    cc = pow(-1, m); 
+                    cc = pow(-1, m);
                     ylm_dphi = dc{0.0,1.0} * double(m) * ylm[lm];
                     term1 = ylm_dtheta[lm] * costheta;
                     term2 = coeff * ylm_dphi;
@@ -274,9 +279,9 @@ void PairMLIPGtinv::compute(int eflag, int vflag)
             dis = sqrt(delx*delx + dely*dely + delz*delz);
             if (dis < pot.fp.cutoff){
                 evdwl = evdwl_array[ii][jj];
-                fx = fx_array[ii][jj]; 
-                fy = fy_array[ii][jj]; 
-                fz = fz_array[ii][jj]; 
+                fx = fx_array[ii][jj];
+                fy = fy_array[ii][jj];
+                fz = fz_array[ii][jj];
                 f[i][0] += fx, f[i][1] += fy, f[i][2] += fz;
                 // if (newton_pair || j < nlocal)
                 f[j][0] -= fx, f[j][1] -= fy, f[j][2] -= fz;
@@ -292,7 +297,7 @@ void PairMLIPGtinv::compute(int eflag, int vflag)
 
 barray4dc PairMLIPGtinv::compute_anlm(){
 
-    const int n_fn = pot.modelp.get_n_fn(), n_lm = pot.lm_info.size(), 
+    const int n_fn = pot.modelp.get_n_fn(), n_lm = pot.lm_info.size(),
         n_lm_all = 2 * n_lm - pot.fp.maxl - 1, n_type = pot.fp.n_type;
 
     int inum = list->inum;
@@ -304,7 +309,7 @@ barray4dc PairMLIPGtinv::compute_anlm(){
     barray4d anlm_i(boost::extents[inum][n_type][n_fn][n_lm]);
     std::fill(anlm_r.data(), anlm_r.data() + anlm_r.num_elements(), 0.0);
     std::fill(anlm_i.data(), anlm_i.data() + anlm_i.num_elements(), 0.0);
-    
+
     #ifdef _OPENMP
     #pragma omp parallel for schedule(guided)
     #endif
@@ -329,7 +334,7 @@ barray4dc PairMLIPGtinv::compute_anlm(){
             dis = sqrt(delx*delx + dely*dely + delz*delz);
             if (dis < pot.fp.cutoff){
                 type2 = types[tag[j]-1];
-                const vector1d &sph 
+                const vector1d &sph
                     = cartesian_to_spherical(vector1d{delx,dely,delz});
                 get_fn(dis, pot.fp, fn);
                 get_ylm(sph, pot.lm_info, ylm);
@@ -371,9 +376,9 @@ barray4dc PairMLIPGtinv::compute_anlm(){
                 for (int lm = 0; lm < n_lm; ++lm) {
                     m = pot.lm_info[lm][1];
                     lm1 = pot.lm_info[lm][2], lm2 = pot.lm_info[lm][3];
-                    anlm[ii][type2][n][lm1] = 
+                    anlm[ii][type2][n][lm1] =
                         {anlm_r[ii][type2][n][lm], anlm_i[ii][type2][n][lm]};
-                    cc = pow(-1, m); 
+                    cc = pow(-1, m);
                     anlm[ii][type2][n][lm2] =
                         {cc * anlm_r[ii][type2][n][lm],
                         - cc * anlm_i[ii][type2][n][lm]};
@@ -381,15 +386,15 @@ barray4dc PairMLIPGtinv::compute_anlm(){
             }
         }
     }
-    
+
     return anlm;
-    
+
 }
 
 vector2dc PairMLIPGtinv::compute_anlm_uniq_products
 (const int& type1, const barray3dc& anlm){
 
-    const int n_fn = pot.modelp.get_n_fn(); 
+    const int n_fn = pot.modelp.get_n_fn();
     const vector3i &type_comb_pair = pot.modelp.get_type_comb_pair();
     const vector2i &uniq_prod = pot.poly_gtinv.get_uniq_prod();
     const vector2i &lmtc_map = pot.poly_gtinv.get_lmtc_map();
@@ -416,8 +421,8 @@ vector2dc PairMLIPGtinv::compute_anlm_uniq_products
 vector1d PairMLIPGtinv::compute_polynomial_model_uniq_products
 (const int& type1, const barray3dc& anlm, const vector2dc& uniq){
 
-    const int n_fn = pot.modelp.get_n_fn(); 
-    const int n_des = pot.modelp.get_n_des(); 
+    const int n_fn = pot.modelp.get_n_fn();
+    const int n_des = pot.modelp.get_n_des();
     const int n_gtinv = pot.modelp.get_linear_term_gtinv().size();
     const int n_lm = pot.lm_info.size();
     const int n_lm_all = 2 * n_lm - pot.fp.maxl - 1;
@@ -435,12 +440,12 @@ vector1d PairMLIPGtinv::compute_polynomial_model_uniq_products
                 }
                 else {
                     for (int n = 0; n < n_fn; ++n){
-                        dn[n * n_gtinv + t.reg_i] += t.coeff / t.order 
+                        dn[n * n_gtinv + t.reg_i] += t.coeff / t.order
                             * prod_real(anlm[type2][n][lm0],uniq[n][t.lmt_pi]);
                     }
                 }
             }
-        
+
         }
     }
 
@@ -506,7 +511,7 @@ void PairMLIPGtinv::coeff(int narg, char **arg)
 
     // read args that map atom types to elements in potential file
     // map[i] = which element the Ith atom type is, -1 if NULL
-    std::vector<int> map(atom->ntypes);
+    map.resize(atom->ntypes);
     for (int i = 3; i < narg; i++) {
         for (int j = 0; j < ele.size(); j++){
             if (strcmp(arg[i],ele[j].c_str()) == 0){
@@ -521,9 +526,6 @@ void PairMLIPGtinv::coeff(int narg, char **arg)
         for (int j = 1; j <= atom->ntypes; ++j) setflag[i][j] = 1;
     }
 
-    for (int i = 0; i < atom->natoms; ++i){
-        types.emplace_back(map[(atom->type)[i]-1]);
-    }
 }
 
 
@@ -592,7 +594,7 @@ void PairMLIPGtinv::read_pot(char *file)
         Readgtinv rgt(gtinv_order, gtinv_maxl, gtinv_sym, ele.size());
         pot.fp.lm_array = rgt.get_lm_seq();
         pot.fp.l_comb = rgt.get_l_comb();
-        pot.fp.lm_coeffs = rgt.get_lm_coeffs(); 
+        pot.fp.lm_coeffs = rgt.get_lm_coeffs();
         pot.lm_info = get_lm_info(pot.fp.maxl);
     }
 
@@ -609,7 +611,7 @@ void PairMLIPGtinv::read_pot(char *file)
     pot.fp.params = vector2d(n_params);
     for (int i = 0; i < n_params; ++i)
         pot.fp.params[i] = get_value_array<double>(input, 2);
-    
+
     // last line: atomic mass
     mass = get_value_array<double>(input, ele.size());
 
@@ -663,5 +665,3 @@ std::vector<T> PairMLIPGtinv::get_value_array
 
     return array;
 }
-
-

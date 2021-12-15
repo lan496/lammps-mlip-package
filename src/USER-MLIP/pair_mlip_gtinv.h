@@ -38,7 +38,7 @@ class PairMLIPGtinv : public Pair {
   virtual void compute(int, int);
   void settings(int, char **);
   virtual void coeff(int, char **);
-  
+
   virtual double init_one(int, int);
  /* virtual void init_style();
   */
@@ -56,6 +56,7 @@ class PairMLIPGtinv : public Pair {
   };
 
   std::vector<std::string> ele;
+  vector1i map;
   double cutmax;
   vector1d mass;
   vector1i types;
@@ -71,8 +72,8 @@ class PairMLIPGtinv : public Pair {
 
 //  vector1d polynomial_model_uniq_products(const vector1d& dn);
   void polynomial_sum
-      (const vector1dc& uniq, const double& regc, 
-       const double& coeff, const double& order, const double& lmt_pi, 
+      (const vector1dc& uniq, const double& regc,
+       const double& coeff, const double& order, const double& lmt_pi,
        dc& sume, dc& sumf);
 
   double prod_real(const dc& val1, const dc& val2);
@@ -88,4 +89,3 @@ class PairMLIPGtinv : public Pair {
 
 #endif
 #endif
-

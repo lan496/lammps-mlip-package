@@ -38,7 +38,7 @@ class PairMLIPPair : public Pair {
   virtual void compute(int, int);
   void settings(int, char **);
   virtual void coeff(int, char **);
-  
+
   virtual double init_one(int, int);
  /* virtual void init_style();
   */
@@ -77,4 +77,3 @@ class PairMLIPPair : public Pair {
 
 #endif
 #endif
-
