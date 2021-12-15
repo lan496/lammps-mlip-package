@@ -57,6 +57,7 @@ class PairMLIPPair : public Pair {
   struct DataMLIP pot;
 
   std::vector<std::string> ele;
+  vector1i map;
   double cutmax;
   vector1d mass;
   vector1i types;

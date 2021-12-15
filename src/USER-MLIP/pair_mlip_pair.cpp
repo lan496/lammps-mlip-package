@@ -66,9 +66,15 @@ void PairMLIPPair::compute(int eflag, int vflag)
     if (eflag || vflag) ev_setup(eflag,vflag);
     else evflag = 0;
 
-    int inum = list->inum; 
+    int inum = list->inum;
     int nlocal = atom->nlocal;
     int newton_pair = force->newton_pair;
+
+    // `types` should be updated every time
+    types.clear();
+    for (int i = 0; i < atom->natoms; ++i){
+        types.emplace_back(map[(atom->type)[i]-1]);
+    }
 
     // first part of polynomial model correction
     const int n_type_comb = pot.modelp.get_type_comb_pair().size();
@@ -299,7 +305,7 @@ void PairMLIPPair::coeff(int narg, char **arg)
 
     // read args that map atom types to elements in potential file
     // map[i] = which element the Ith atom type is, -1 if NULL
-    std::vector<int> map(atom->ntypes);
+    map.resize(atom->ntypes);
     for (int i = 3; i < narg; i++) {
         for (int j = 0; j < ele.size(); j++){
             if (strcmp(arg[i],ele[j].c_str()) == 0){
@@ -314,9 +320,6 @@ void PairMLIPPair::coeff(int narg, char **arg)
         for (int j = 1; j <= atom->ntypes; ++j) setflag[i][j] = 1;
     }
 
-    for (int i = 0; i < atom->natoms; ++i){
-        types.emplace_back(map[(atom->type)[i]-1]);
-    }
 }
 
 
